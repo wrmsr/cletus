@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import abc
+import pprint
 import sys
 
 from .common import build_attr_repr
 from .common import camelize
 from .common import cast
 from .common import underscorize
-from .xcontent import SimpleXContentBuilder
 from .xcontent import ToXContent
 from .xcontent import WriteXContent
+from .xcontent import to_simple
 
 
 builder_items_attr = '__builder_items__'
@@ -278,6 +279,8 @@ class ChildrenBuilderItem(BuilderItem):
 
 
 def def_builder_item(name, **kwargs):
+	if not isinstance(name, basestring):
+		raise TypeError(name)
 	cls_dct = kwargs.pop('cls_dct', None)
 	if cls_dct is None:
 		cls_dct = sys._getframe(1).f_locals
@@ -292,6 +295,7 @@ def def_builder_items(*names, **kwargs):
 	for name in names:
 		def_builder_item(name, cls_dct=cls_dct, **kwargs)
 
+
 def write_builder_items(obj, builder, params=None):
 	for cls in type(obj).__mro__:
 		builder_items = cls.__dict__.get(builder_items_attr, [])
@@ -303,6 +307,8 @@ def write_builder_items(obj, builder, params=None):
 
 class Builder(WriteXContent, ToXContent):
 
+	__str__ = lambda self: pprint.pformat(to_simple(self))
+
 	def write_xcontent(self, builder, params=None):
 		write_builder_items(self, builder, params)
 
@@ -312,19 +318,31 @@ class Builder(WriteXContent, ToXContent):
 		builder.end_object()
 		return builder
 
-	def to_simple(self, params=None):
-		return self.to_xcontent(SimpleXContentBuilder()).build()
 
 class NamedBuilder(Builder):
 	NAME = None
 
+	def __init__(self, **kwargs):
+		super(NamedBuilder, self).__init__()
+		self._kwargs = kwargs
+
+	def_builder_items('kwargs', type={basestring: object}, silent=True)
+
 	def write_body(self, builder, params=None):
 		pass
+
+	def write_kwargs(self, builder, params=None):
+		for k, v in self._kwargs.iteritems():
+			builder.field(k, v)
+
+	def write_builder_items(self, builder, params=None):
+		write_builder_items(self, builder, params)
 
 	def write_xcontent(self, builder, params=None):
 		if self.NAME is None:
 			raise NameError(self.NAME)
 		builder.start_object(self.NAME)
 		self.write_body(builder, params)
-		write_builder_items(self, builder, params)
+		self.write_kwargs(builder, params)
+		self.write_builder_items(builder, params)
 		builder.end_object()

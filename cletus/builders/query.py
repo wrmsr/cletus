@@ -81,8 +81,8 @@ class CommonTermsQueryBuilder(CoordinatingQueryBuilder):
 
 	Operator = enum('OR', 'AND')
 
-	def __init__(self, name, text):
-		super(CommonTermsQueryBuilder, self).__init__()
+	def __init__(self, name, text, **kwargs):
+		super(CommonTermsQueryBuilder, self).__init__(**kwargs)
 		self._name = name
 		self._text = text
 
@@ -96,7 +96,6 @@ class ConstantScoreQueryBuilder(BoostableQueryBuilder):
 	NAME = 'constant_score'
 
 	def __init__(self, *args, **kwargs):
-		super(ConstantScoreQueryBuilder, self).__init__()
 		query, filter = None, None
 		if args:
 			if len(args) == 1:
@@ -110,9 +109,8 @@ class ConstantScoreQueryBuilder(BoostableQueryBuilder):
 		if kwargs:
 			query = kwargs.pop('query', query)
 			filter = kwargs.pop('filter', filter)
-			if kwargs:
-				raise TypeError(kwargs.keys())
 		self._query, self._filter = query, filter
+		super(ConstantScoreQueryBuilder, self).__init__(**kwargs)
 
 	def_builder_items('query', type=QueryBuilder)
 	def_builder_items('filter', type=FilterBuilder)
@@ -121,8 +119,8 @@ class ConstantScoreQueryBuilder(BoostableQueryBuilder):
 class CustomBoostFactorQueryBuilder(BoostableQueryBuilder):
 	NAME = 'custom_boost_factor'
 
-	def __init__(self, query):
-		super(ConstantScoreQueryBuilder, self).__init__()
+	def __init__(self, query, **kwargs):
+		super(ConstantScoreQueryBuilder, self).__init__(**kwargs)
 		self._query = query
 
 	def_builder_items('query', type=QueryBuilder)
@@ -131,8 +129,8 @@ class CustomBoostFactorQueryBuilder(BoostableQueryBuilder):
 class TermsQueryBuilder(BoostableQueryBuilder):
 	NAME = 'terms'
 
-	def __init__(self, name, *values):
-		super(TermsQueryBuilder, self).__init__()
+	def __init__(self, name, *values, **kwargs):
+		super(TermsQueryBuilder, self).__init__(**kwargs)
 		self._name = name
 		self._values = list(values)
 
@@ -149,8 +147,8 @@ class TermsQueryBuilder(BoostableQueryBuilder):
 class CustomFiltersScoreQueryBuilder(BoostableQueryBuilder):
 	NAME = 'custom_filters_score'
 
-	def __init__(self, query):
-		super(CustomFiltersScoreQueryBuilder, self).__init__()
+	def __init__(self, query, **kwargs):
+		super(CustomFiltersScoreQueryBuilder, self).__init__(**kwargs)
 		self._query = query
 
 	def_builder_items('params', type={basestring: object})
@@ -165,8 +163,8 @@ class CustomFiltersScoreQueryBuilder(BoostableQueryBuilder):
 class CustomScoreQueryBuilder(QueryBuilder):
 	NAME = 'custom_boost_factor'
 
-	def __init__(self, query):
-		super(CustomScoreQueryBuilder, self).__init__()
+	def __init__(self, query, **kwargs):
+		super(CustomScoreQueryBuilder, self).__init__(**kwargs)
 		self._query = query
 
 	def_builder_items('query', type=QueryBuilder)
@@ -176,8 +174,8 @@ class CustomScoreQueryBuilder(QueryBuilder):
 class DisMaxQueryBuilder(BoostableQueryBuilder):
 	NAME = 'dis_max'
 
-	def __init__(self, *queries):
-		super(DisMaxQueryBuilder, self).__init__()
+	def __init__(self, *queries, **kwargs):
+		super(DisMaxQueryBuilder, self).__init__(**kwargs)
 		self._queries = list(queries)
 
 	def_builder_items('queries', type=[QueryBuilder])
@@ -187,8 +185,8 @@ class DisMaxQueryBuilder(BoostableQueryBuilder):
 class FieldMaskingSpanQueryBuilder(SpanQueryBuilder):
 	NAME = 'field_masking_span'
 
-	def __init__(self, query, field):
-		super(FieldMaskingSpanQueryBuilder, self).__init__()
+	def __init__(self, query, field, **kwargs):
+		super(FieldMaskingSpanQueryBuilder, self).__init__(**kwargs)
 		self._query = query
 		self._field = field
 
@@ -207,8 +205,8 @@ class MatchQueryBuilder(BoostableQueryBuilder):
 	Type = enum('BOOLEAN', 'PHRASE', 'PHRASE_PREFIX')
 	ZeroTermsQuery = enum('NONE', 'ALL')
 
-	def __init__(self, name, text):
-		super(MatchQueryBuilder, self).__init__()
+	def __init__(self, name, text, **kwargs):
+		super(MatchQueryBuilder, self).__init__(**kwargs)
 		self._name = name
 		self._text = text
 

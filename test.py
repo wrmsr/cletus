@@ -2,10 +2,9 @@ from cletus import *
 
 
 def main():
-	import pprint
-	pprint.pprint(SearchSourceBuilder().timeout_in_millis(5).fields(['_id']).sorts([1,2,3]).to_simple())
-	pprint.pprint(PartialField().name('something').includes(['a', 'b']).to_simple())
-	pprint.pprint(
+	print(SearchSourceBuilder().timeout_in_millis(5).fields(['_id']).sorts([1,2,3]))
+	print(PartialField().name('something').includes(['a', 'b']))
+	print(
 		BoolQueryBuilder()
 		.minimumShouldMatch(3)
 		.should([
@@ -13,9 +12,9 @@ def main():
 			TermsQueryBuilder('x', 4, 5, 6),
 			MatchQueryBuilder('thing', 'foo').type(MatchQueryBuilder.Type.PHRASE),
 			MatchAllQueryBuilder(),
-			ConstantScoreQueryBuilder(query=MatchAllQueryBuilder()),
-		])
-		.to_simple())
+			ConstantScoreQueryBuilder(query=MatchAllQueryBuilder(), special=True),
+			{'literal_thing': True},
+		]))
 
 if __name__ == '__main__':
 	main()
