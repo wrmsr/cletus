@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from ..builder import Builder
 from ..builder import def_builder_items
 

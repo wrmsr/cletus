@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 import string
 
@@ -41,8 +42,14 @@ def cast(o, t):
 		t = unicode
 	return t(o)
 
+
 def enum(*values):
-	return type('<enum>', (object,), dict((value, value) for value in values))
+	dct = dict((value, value) for value in values)
+	def __new__(cls, value):
+		return value
+	dct['__new__'] = __new__
+	dct['__values__'] = values
+	return type('<enum_%d>' % len(values), (object,), dct)
 
 
 def find_subclasses_with_attr(cls, sttr, value):

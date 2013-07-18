@@ -13,6 +13,7 @@ def main():
 			TermsQueryBuilder('x', 4, 5, 6),
 			MatchQueryBuilder('thing', 'foo').type(MatchQueryBuilder.Type.PHRASE),
 			MatchAllQueryBuilder(),
+			ConstantScoreQueryBuilder(query=MatchAllQueryBuilder()),
 		])
 		.to_simple())
 

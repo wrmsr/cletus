@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import abc
 import sys
 
@@ -14,8 +15,25 @@ builder_items_attr = '__builder_items__'
 
 
 class no_default(object):
+
 	def __init__(self):
 		raise NotImplementedError()
+
+
+class BuilderItemWriter(WriteXContent):
+
+	def __init__(self, builder_item, obj):
+		self._builder_item = builder_item
+		self._obj = obj
+
+	builder_item = property(lambda self: self._builder_item)
+	obj = property(lambda self: self._obj)
+
+	__repr__ = build_attr_repr
+	__repr_attrs__ = property(lambda self: ('builder_item', 'obj'))
+
+	def write_xcontent(self, builder, params=None):
+		self.builder_item.write(self.obj, builder, params)
 
 
 class BuilderItem(object):
@@ -63,16 +81,22 @@ class BuilderItem(object):
 		'formatter',
 	))
 
-	def get(self, obj, value):
-		return getattr(obj, self.attr_name, value)
+	def get(self, obj, *args):
+		return getattr(obj, self.attr_name, *args)
 
 	@abc.abstractmethod
 	def set(self, obj, *args, **kwargs):
 		raise NotImplementedError()
 
+	def has(self, obj):
+		return hasattr(obj, self.attr_name)
+
 	@abc.abstractmethod
 	def write(self, obj, builder, params=None):
 		raise NotImplementedError()
+
+	def writer(self, obj):
+		return BuilderItemWriter(self, obj)
 
 	def install(self, cls_dct):
 		cls_builder_items = cls_dct.setdefault(builder_items_attr, [])
@@ -123,8 +147,8 @@ class SimpleBuilderItem(BuilderItem):
 		return obj
 
 	def write(self, obj, builder, params=None):
-		if hasattr(obj, self.attr_name):
-			value = getattr(obj, self.attr_name)
+		if self.has(obj):
+			value = self.get(obj)
 			if self.formatter is not None:
 				value = self.formatter(value)
 			builder.field(self.field_name, value)
@@ -152,9 +176,9 @@ class ListBuilderItem(BuilderItem):
 		return obj
 
 	def write(self, obj, builder, params=None):
-		if hasattr(obj, self.attr_name):
+		if self.has(obj):
 			builder.start_array(self.field_name)
-			for item in getattr(obj, self.attr_name):
+			for item in self.get(obj):
 				builder.value(item)
 			builder.end_array()
 
@@ -186,9 +210,9 @@ class DictBuilderItem(BuilderItem):
 		return obj
 
 	def write(self, obj, builder, params=None):
-		if hasattr(obj, self.attr_name):
+		if self.has(obj):
 			builder.start_object(self.field_name)
-			for k, v in getattr(obj, self.attr_name).iteritems():
+			for k, v in self.get(obj).iteritems():
 				builder.field(k, v)
 			builder.end_object()
 
@@ -219,11 +243,12 @@ class ChildBuilderItem(BuilderItem):
 			setattr(obj, self.attr_name, value)
 		return getattr(obj, self.attr_name)
 
+	def has(self, obj):
+		return hasattr(obj, self.attr_name) and getattr(obj, self.attr_name) is not None
+
 	def write(self, obj, builder, params=None):
-		if hasattr(obj, self.attr_name):
-			builder.start_object(self.field_name)
-			getattr(obj, self.attr_name).write_xcontent(builder, params)
-			builder.end_object()
+		if self.has(obj):
+			builder.field(self.field_name, self.get(obj))
 
 
 class ChildrenBuilderItem(BuilderItem):
@@ -245,12 +270,10 @@ class ChildrenBuilderItem(BuilderItem):
 		return obj
 
 	def write(self, obj, builder, params=None):
-		if hasattr(obj, self.attr_name):
+		if self.has(obj):
 			builder.start_array(self.field_name)
-			for item in getattr(obj, self.attr_name):
-				builder.start_object()
-				item.write_xcontent(builder, params)
-				builder.end_object()
+			for item in self.get(obj):
+				builder.value(item)
 			builder.end_array()
 
 
@@ -293,7 +316,6 @@ class Builder(WriteXContent, ToXContent):
 		return self.to_xcontent(SimpleXContentBuilder()).build()
 
 class NamedBuilder(Builder):
-
 	NAME = None
 
 	def write_body(self, builder, params=None):

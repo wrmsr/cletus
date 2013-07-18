@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import abc
 
 
@@ -42,7 +43,7 @@ class XContentBuilder(object):
 	def end_array(self):
 		raise NotImplementedError()
 
-
+	
 class SimpleXContentBuilder(XContentBuilder):
 
 	def __init__(self):
@@ -58,8 +59,16 @@ class SimpleXContentBuilder(XContentBuilder):
 		self._items.append(dct)
 		return self
 
+	def _value(self, value):
+		# TODO(wtimoney): cleanup
+		if isinstance(value, ToXContent):
+			value_builder = type(self)()
+			value.to_xcontent(value_builder)
+			return value_builder.build()
+		return value
+
 	def field(self, name, value):
-		self._items[-1][name] = value
+		self._items[-1][name] = self._value(value)
 		return self
 
 	def end_object(self):
@@ -78,7 +87,7 @@ class SimpleXContentBuilder(XContentBuilder):
 		return self
 
 	def value(self, value):
-		self._items[-1].append(value)
+		self._items[-1].append(self._value(value))
 		return self
 
 	def end_array(self):
@@ -90,5 +99,3 @@ class SimpleXContentBuilder(XContentBuilder):
 		if len(self._items) != 1 or len(self._items[0]) != 1:
 			raise TypeError()
 		return self._items[0][0]
-
-

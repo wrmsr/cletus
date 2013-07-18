@@ -1,12 +1,5 @@
+# -*- coding: utf-8 -*-
 """
-BaseQueryBuilder
-CommonTermsQueryBuilder
-ConstantScoreQueryBuilder
-CustomBoostFactorQueryBuilder
-CustomFiltersScoreQueryBuilder
-CustomScoreQueryBuilder
-DisMaxQueryBuilder
-FieldMaskingSpanQueryBuilder
 FieldQueryBuilder
 FilteredQueryBuilder
 FuzzyLikeThisFieldQueryBuilder
@@ -48,9 +41,14 @@ WrapperQueryBuilder
 from ..builder import NamedBuilder
 from ..builder import def_builder_items
 from ..common import enum
+from .filter import FilterBuilder
 
 
 class QueryBuilder(NamedBuilder):
+	pass
+
+
+class SpanQueryBuilder(QueryBuilder):
 	pass
 
 
@@ -63,8 +61,8 @@ class CoordinatingQueryBuilder(BoostableQueryBuilder):
 
 	def_builder_items('minimum_should_match', type=basestring)
 	def_builder_items('disable_coord', type=bool)
-	
-	
+
+
 class BoolQueryBuilder(CoordinatingQueryBuilder):
 	NAME = 'bool'
 
@@ -84,12 +82,50 @@ class CommonTermsQueryBuilder(CoordinatingQueryBuilder):
 	Operator = enum('OR', 'AND')
 
 	def __init__(self, name, text):
+		super(CommonTermsQueryBuilder, self).__init__()
 		self._name = name
 		self._text = text
 
-	def_builder_items('analyzer', type=basestring)
+	def_builder_items('name', 'analyzer', type=basestring)
+	def_builder_items('text')
 	def_builder_items('cutoff_frequency', type=float)
 	def_builder_items('high_freq_operator', 'low_freq_operator', type=Operator)
+
+
+class ConstantScoreQueryBuilder(BoostableQueryBuilder):
+	NAME = 'constant_score'
+
+	def __init__(self, *args, **kwargs):
+		super(ConstantScoreQueryBuilder, self).__init__()
+		query, filter = None, None
+		if args:
+			if len(args) == 1:
+				[arg] = args
+				if isinstance(arg, FilterBuilder):
+					filter = arg
+				else:
+					query = arg
+			else:
+				query, filter = args
+		if kwargs:
+			query = kwargs.pop('query', query)
+			filter = kwargs.pop('filter', filter)
+			if kwargs:
+				raise TypeError(kwargs.keys())
+		self._query, self._filter = query, filter
+
+	def_builder_items('query', type=QueryBuilder)
+	def_builder_items('filter', type=FilterBuilder)
+
+
+class CustomBoostFactorQueryBuilder(BoostableQueryBuilder):
+	NAME = 'custom_boost_factor'
+
+	def __init__(self, query):
+		super(ConstantScoreQueryBuilder, self).__init__()
+		self._query = query
+
+	def_builder_items('query', type=QueryBuilder)
 
 
 class TermsQueryBuilder(BoostableQueryBuilder):
@@ -103,18 +139,68 @@ class TermsQueryBuilder(BoostableQueryBuilder):
 	def_builder_items('disable_coord', type=bool)
 	def_builder_items('minimum_should_match', type=basestring)
 
-	def write_body_xcontent(self, builder, params=None):
+	def write_body(self, builder, params=None):
 		builder.start_array(self._name)
 		for value in getattr(self, '_values', ()):
 			builder.value(value)
 		builder.end_array()
 
 
-class MatchAllQueryBuilder(QueryBuilder):
+class CustomFiltersScoreQueryBuilder(BoostableQueryBuilder):
+	NAME = 'custom_filters_score'
+
+	def __init__(self, query):
+		super(CustomFiltersScoreQueryBuilder, self).__init__()
+		self._query = query
+
+	def_builder_items('params', type={basestring: object})
+	def_builder_items('query', type=QueryBuilder)
+	def_builder_items('boosts', type=[float])
+	def_builder_items('filters', type=[FilterBuilder])
+	def_builder_items('max_boost', type=float)
+	def_builder_items('scripts', type=[basestring])
+	def_builder_items('lang', 'score_mode', type=basestring)
+
+
+class CustomScoreQueryBuilder(QueryBuilder):
+	NAME = 'custom_boost_factor'
+
+	def __init__(self, query):
+		super(CustomScoreQueryBuilder, self).__init__()
+		self._query = query
+
+	def_builder_items('query', type=QueryBuilder)
+	def_builder_items('boost_factor', type=float)
+
+
+class DisMaxQueryBuilder(BoostableQueryBuilder):
+	NAME = 'dis_max'
+
+	def __init__(self, *queries):
+		super(DisMaxQueryBuilder, self).__init__()
+		self._queries = list(queries)
+
+	def_builder_items('queries', type=[QueryBuilder])
+	def_builder_items('tie_breaker', type=float)
+
+
+class FieldMaskingSpanQueryBuilder(SpanQueryBuilder):
+	NAME = 'field_masking_span'
+
+	def __init__(self, query, field):
+		super(FieldMaskingSpanQueryBuilder, self).__init__()
+		self._query = query
+		self._field = field
+
+	def_builder_items('query', type=QueryBuilder)
+	def_builder_items('field', type=basestring)
+
+
+class MatchAllQueryBuilder(BoostingQueryBuilder):
 	NAME = 'match_all'
 
 
-class MatchQueryBuilder(QueryBuilder):
+class MatchQueryBuilder(BoostableQueryBuilder):
 	NAME = 'match'
 
 	Operator = enum('OR', 'AND')
@@ -122,10 +208,11 @@ class MatchQueryBuilder(QueryBuilder):
 	ZeroTermsQuery = enum('NONE', 'ALL')
 
 	def __init__(self, name, text):
+		super(MatchQueryBuilder, self).__init__()
 		self._name = name
 		self._text = text
 
-	def_builder_items('boost', 'cutoff_frequency', type=float)
+	def_builder_items('cutoff_frequency', type=float)
 	def_builder_items('slop', 'prefix_length', 'max_expansions', type=int)
 	def_builder_items(
 		'analyzer',
