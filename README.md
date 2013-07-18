@@ -21,6 +21,10 @@ Rationale is as follows:
 
 Notes:
 
+* If you think kwargs obviate builders you should probably not be here.
+* Literal interop (get-out-the-way mode) is a priority.
+* Additional builder functionality is planned (add_should, add_filter, ...) but
+  equivalence is the baseline.
 * Builder methods are automatically exposed as both lower_case_underscore and
   lowerCamelCase. This allows both hot swapping with the native client (the
   primary design goal) and more pythonic PEP8 usage.
